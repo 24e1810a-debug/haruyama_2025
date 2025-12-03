@@ -11,11 +11,10 @@ st.set_page_config(
 )
 
 # -------------------------------
-# カスタムデザインCSS
+# カスタム CSS（Selectbox を壊す部分を削除）
 # -------------------------------
 st.markdown("""
 <style>
-/* 背景 */
 body {
     background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
     font-family: "Helvetica", sans-serif;
@@ -47,7 +46,6 @@ h1 {
     margin-bottom: 5px;
 }
 
-/* サブタイトル */
 .subtitle {
     text-align: center;
     color: #777;
@@ -70,8 +68,7 @@ h1 {
     background: #ff7a1a !important;
 }
 
-/* セレクト・テキスト */
-.stSelectbox > div > div,
+/* テキスト入力欄のみ丸くする */
 .stTextInput > div > div > input {
     border-radius: 10px !important;
     padding: 10px !important;
@@ -86,66 +83,63 @@ st.title("🍳 今日の気分で料理を決めるアプリ")
 st.markdown('<p class="subtitle">気分・ジャンル・時間から最適な料理をAIが提案します</p>', unsafe_allow_html=True)
 
 # -------------------------------
-# メインコンテナ（カード風）
+# メインカード
 # -------------------------------
-with st.container():
-    st.markdown('<div class="main-card">', unsafe_allow_html=True)
+st.markdown('<div class="main-card">', unsafe_allow_html=True)
 
-    # APIキー
-    client = genai.Client(api_key=st.secrets["api_key"])
+# APIキー
+client = genai.Client(api_key=st.secrets["api_key"])
 
-    # ▼ ユーザー入力 ▼
-    mood = st.text_input("今日の気分は？", placeholder="例: 疲れ気味、元気、リラックスしたい")
+# ▼ ユーザー入力
+mood = st.text_input("今日の気分は？", placeholder="例: 疲れ気味、元気、リラックスしたい")
 
-    genre = st.selectbox(
-        "食べたい料理のジャンル",
-        ["おまかせ", "和食", "洋食", "中華"]
-    )
+genre = st.selectbox(
+    "食べたい料理のジャンル",
+    ["おまかせ", "和食", "洋食", "中華"]
+)
 
-    cooking_time = st.selectbox(
-        "どのくらいで作りたい？",
-        ["おまかせ", "10分以内", "20分以内", "30分以内", "45分以内", "1時間以内"]
-    )
+cooking_time = st.selectbox(
+    "どのくらいで作りたい？",
+    ["おまかせ", "10分以内", "20分以内", "30分以内", "45分以内", "1時間以内"]
+)
 
-    st.write("")  # 余白
+st.write("")
 
-    # -------------------------------
-    # 料理を生成
-    # -------------------------------
-    if st.button("🍽 料理を提案してもらう"):
-        if not mood:
-            st.error("気分を入力してください！")
-        else:
-            with st.spinner("AIが最適な料理を考えています…"):
-
-                prompt = f"""
+# 提案ボタン
+if st.button("🍽 料理を提案してもらう"):
+    if not mood:
+        st.error("気分を入力してください！")
+    else:
+        with st.spinner("AIが最適な料理を考えています…"):
+            prompt = f"""
 今日の気分: {mood}
 料理ジャンル: {genre}
 調理時間: {cooking_time}
 
-上記条件に合う料理を1つ提案してください。
+条件に合う料理を1つ提案してください。
 
 【出力フォーマット】
 ■ 料理名
 ■ 材料（箇条書き）
-■ 作り方（手順を番号付きで）
+■ 作り方（番号付き）
 ■ その料理が気分に合う理由（短く）
-                """
+            """
 
-                try:
-                    response = client.models.generate_content(
-                        model="gemini-2.5-flash",
-                        contents=prompt
-                    )
-                    recipe_text = response.text if hasattr(response, "text") else None
+            try:
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt
+                )
+                recipe_text = response.text if hasattr(response, "text") else None
 
-                    if recipe_text:
-                        st.markdown(f"<div class='recipe-box'>{recipe_text}</div>", unsafe_allow_html=True)
-                    else:
-                        st.error("料理の提案が返ってきませんでした。")
+                if recipe_text:
+                    st.markdown(f"<div class='recipe-box'>{recipe_text}</div>", unsafe_allow_html=True)
+                else:
+                    st.error("料理の提案が返ってきませんでした。")
 
-                except Exception as e:
-                    st.error(f"エラーが発生しました: {e}")
+            except Exception as e:
+                st.error(f"エラーが発生しました: {e}")
 
-    st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
+
 
