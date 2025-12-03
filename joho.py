@@ -1,37 +1,87 @@
 import streamlit as st
-from google import genai
+import google.generativeai as genai
 
-st.title("🍳 今日の気分で料理を決めるアプリ")
+# -------------------------------
+# ページ全体の設定
+# -------------------------------
+st.set_page_config(
+    page_title="気分でレシピアプリ",
+    page_icon="🍽️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# APIキー設定
-client = genai.Client(api_key=st.secrets["api_key"])
+# -------------------------------
+# カスタムCSS（デザイン強化）
+# -------------------------------
+st.markdown("""
+<style>
+/* 全体のフォントと背景 */
+body {
+    background: #f7f7f7;
+    font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+}
 
-# ユーザー入力
-mood = st.text_input("今日の気分を入力してください", placeholder="例: 疲れ気味、元気、リラックスしたい")
+/* コンテナのデザイン */
+.stContainer {
+    background: white;
+    padding: 2rem;
+    border-radius: 18px;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+}
 
-if st.button("料理を提案する") and mood:
-    with st.spinner("料理を考えています…"):
-        prompt_text = f"""
-今日の気分が「{mood}」です。
-この気分に合う料理を1つ提案してください。
-レシピは手順ごとにわかりやすく書き、必要な材料も箇条書きで教えてください。
+/* タイトルのオシャレ化 */
+h1 {
+    color: #333;
+    text-align: center;
+    font-weight: 700;
+    margin-bottom: 30px;
+}
+
+/* セレクトボックスのデザイン */
+.css-1cpxqw2 {
+    background: white !important;
+    border-radius: 12px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# -------------------------------
+# APIキー読み込み
+# -------------------------------
+api_key = st.secrets["api_key"]
+genai.configure(api_key=api_key)
+
+# ★ GPTクライアント
+client = genai.GenerativeModel("gemini-pro")
+
+# -------------------------------
+# UI
+# -------------------------------
+st.title("🍽️ 気分でおすすめレシピを提案するアプリ")
+
+mood = st.selectbox(
+    "今日の気分を選んでください",
+    ["元気いっぱい", "疲れ気味", "さっぱりしたい", "こってりしたい", "落ち込んでいる"],
+    help="気分に合わせて、最適なレシピをAIが提案します！"
+)
+
+if st.button("レシピを生成する"):
+    with st.spinner("レシピを考えています…🍳"):
+        prompt = f"""
+        あなたはトップシェフです。
+        ユーザーの今日の気分「{mood}」にぴったり合う料理を1つ提案してください。
+        
+        出力フォーマット：
+        ・料理名
+        ・概要（短め）
+        ・必要な材料
+        ・シンプルな作り方
+        ・おすすめポイント
         """
-        try:
-            # 最新 SDK では generate_content() を使用
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt_text
-            )
 
-            recipe_text = response.text if hasattr(response, "text") else None
+        response = client.generate_content(prompt)
 
-            if recipe_text:
-                st.subheader("🍽 今日のおすすめ料理")
-                st.write(recipe_text)
-            else:
-                st.error("料理の提案が返ってきませんでした。")
-
-        except Exception as e:
-            st.error(f"料理の提案中にエラーが発生しました: {e}")
-
+        st.markdown("### ✨ 今日のおすすめ料理")
+        st.markdown(f'<div class="stContainer">{response.text}</div>', unsafe_allow_html=True)
 
