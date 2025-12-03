@@ -15,9 +15,12 @@ st.set_page_config(
 # -------------------------------
 st.markdown("""
 <style>
+/* 背景色 */
 body {
     background-color: #f5f7fa;
 }
+
+/* カード風のボックス */
 .recipe-box {
     background: white;
     padding: 20px;
@@ -25,13 +28,14 @@ body {
     border-radius: 12px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.08);
 }
+
+/* 入力欄 */
 .stTextInput > div > div > input {
     border-radius: 10px;
     padding: 10px;
 }
-.stSelectbox > div > div:first-child {
-    border-radius: 10px;
-}
+
+/* ボタン */
 .stButton > button {
     background: #ff8c42;
     color: white;
@@ -43,6 +47,8 @@ body {
 .stButton > button:hover {
     background: #ff7b22;
 }
+
+/* タイトル */
 h1 {
     text-align: center;
     font-weight: 700;
@@ -66,40 +72,15 @@ client = genai.Client(api_key=st.secrets["api_key"])
 # -------------------------------
 mood = st.text_input("今日の気分を入力してください", placeholder="例: 疲れ気味、元気、リラックスしたい")
 
-# ▼ 追加①：料理ジャンル
-food_type = st.selectbox(
-    "どの料理が食べたい？（料理の系統）",
-    ["指定なし", "和食", "洋食", "中華", "韓国料理", "イタリアン", "エスニック", "ヘルシー"],
-)
-
-# ▼ 追加②：料理時間
-cook_time = st.selectbox(
-    "どれくらいで出来上がる料理がいい？（調理時間）",
-    ["指定なし", "5分以内", "10分以内", "20分以内", "30分以内", "45分以内", "1時間以内"]
-)
-
 if st.button("料理を提案する") and mood:
     with st.spinner("料理を考えています…"):
         prompt_text = f"""
-今日の気分は「{mood}」です。
-
-料理の系統: {food_type}
-希望の調理時間: {cook_time}
-
-上記の条件に合う料理を1つ提案してください。
-
-【出力内容】
-・料理名
-・料理ジャンル（例：和食・洋食）
-・必要な材料（箇条書き）
-・作り方（わかりやすく手順ごとに）
-・調理時間（目安）
-・おすすめポイント
-
-わかりやすく親しみやすい文章で書いてください。
+今日の気分が「{mood}」です。
+この気分に合う料理を1つ提案してください。
+レシピは手順ごとにわかりやすく書き、必要な材料も箇条書きで教えてください。
         """
-
         try:
+            # 最新 SDK の generate_content()
             response = client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=prompt_text
