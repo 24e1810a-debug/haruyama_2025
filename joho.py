@@ -91,7 +91,7 @@ st.markdown(
 st.markdown('<div class="main-card">', unsafe_allow_html=True)
 
 # APIキー
-client = genai.Client(api_key=st.secrets["api_key"])
+client = genai.Client(api_key=st.secrets["AIzaSyCm-rRT2Ekpy2uBeUQserHbEaEXUS4DGyg"])
 
 # -------------------------------
 # ユーザー入力
