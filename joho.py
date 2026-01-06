@@ -1,5 +1,6 @@
 import streamlit as st
 from google import genai
+import urllib.parse
 
 # -------------------------------
 # ページ設定
@@ -11,7 +12,7 @@ st.set_page_config(
 )
 
 # -------------------------------
-# カスタム CSS
+# カスタムCSS
 # -------------------------------
 st.markdown("""
 <style>
@@ -20,7 +21,6 @@ body {
     font-family: "Helvetica", sans-serif;
 }
 
-/* メインカード */
 .main-card {
     background: white;
     padding: 30px;
@@ -29,16 +29,14 @@ body {
     margin-top: 20px;
 }
 
-/* レシピ表示カード */
 .recipe-box {
     background: #fff8ef;
     padding: 20px;
     border-radius: 14px;
-    margin-top: 25px;
+    margin-top: 20px;
     box-shadow: 0 3px 10px rgba(0,0,0,0.1);
 }
 
-/* タイトル */
 h1 {
     text-align: center;
     font-weight: 800;
@@ -52,7 +50,6 @@ h1 {
     margin-bottom: 20px;
 }
 
-/* ボタン */
 .stButton > button {
     background: #ff8c42 !important;
     color: white !important;
@@ -60,14 +57,6 @@ h1 {
     padding: 12px 22px !important;
     border-radius: 12px !important;
     border: none;
-}
-.stButton > button:hover {
-    background: #ff7a1a !important;
-}
-
-/* テキスト入力 */
-.stTextInput input {
-    border-radius: 10px !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -82,15 +71,17 @@ st.markdown(
 )
 
 # -------------------------------
-# メインカード開始
+# メインカード
 # -------------------------------
 st.markdown('<div class="main-card">', unsafe_allow_html=True)
 
-# APIキー
+# -------------------------------
+# Gemini API
+# -------------------------------
 client = genai.Client(api_key=st.secrets["api_key"])
 
 # -------------------------------
-# ユーザー入力
+# 入力欄
 # -------------------------------
 mood = st.text_input(
     "How are you feeling today?",
@@ -98,58 +89,46 @@ mood = st.text_input(
 )
 
 genre = st.selectbox(
-    "Cuisine type",
+    "Cuisine",
     ["Any", "Japanese", "Western", "Chinese"]
 )
 
 cooking_time = st.selectbox(
-    "How much time do you have?",
-    [
-        "Any",
-        "Within 10 minutes",
-        "Within 20 minutes",
-        "Within 30 minutes",
-        "Within 45 minutes",
-        "Within 1 hour"
-    ]
+    "Cooking time",
+    ["Any", "Within 10 minutes", "Within 20 minutes", "Within 30 minutes", "Within 45 minutes", "Within 1 hour"]
 )
 
-st.write("")
+# -------------------------------
+# Web画像取得（Unsplash）
+# -------------------------------
+def get_food_image(dish_name):
+    query = urllib.parse.quote(dish_name)
+    return f"https://source.unsplash.com/800x500/?food,{query}"
 
 # -------------------------------
-# 提案ボタン
+# ボタン処理
 # -------------------------------
-if st.button("🍽 Get a recipe"):
+if st.button("🍽 Get a Recipe"):
     if not mood:
         st.error("Please enter your mood.")
     else:
-        with st.spinner("The AI is generating a recipe..."):
+        with st.spinner("AI is thinking about the best recipe for you..."):
             prompt = f"""
-You are an English-speaking cooking assistant.
-
 Mood: {mood}
-Cuisine type: {genre}
+Cuisine: {genre}
 Cooking time: {cooking_time}
 
-Please suggest ONE dish that matches these conditions.
+Suggest ONE dish that fits the conditions.
+Answer in ENGLISH only.
 
-IMPORTANT RULES:
-- Answer EVERYTHING in English.
-- Do NOT include images.
-- Do NOT include image links.
-- Do NOT use Markdown image syntax.
-
-Output format:
+Format:
 Dish name:
 Ingredients:
-- bullet points
-
-Instructions:
-1. numbered steps
-
-Why this dish matches the mood:
-(short explanation)
-            """
+- item
+Steps:
+1.
+Reason why it matches the mood:
+"""
 
             try:
                 response = client.models.generate_content(
@@ -157,20 +136,22 @@ Why this dish matches the mood:
                     contents=prompt
                 )
 
-                recipe_text = response.text if hasattr(response, "text") else None
+                recipe_text = response.text
 
-                if recipe_text:
-                    # 枠だけHTML、中身はMarkdown → 文字化け防止
-                    st.markdown("<div class='recipe-box'>", unsafe_allow_html=True)
-                    st.markdown(recipe_text)
-                    st.markdown("</div>", unsafe_allow_html=True)
-                else:
-                    st.error("No recipe was returned.")
+                # 料理名抽出
+                dish_name = recipe_text.splitlines()[0].replace("Dish name:", "").strip()
+
+                # 画像取得
+                image_url = get_food_image(dish_name)
+
+                # 表示
+                st.image(image_url, caption=dish_name, use_container_width=True)
+
+                st.markdown("<div class='recipe-box'>", unsafe_allow_html=True)
+                st.markdown(recipe_text)
+                st.markdown("</div>", unsafe_allow_html=True)
 
             except Exception as e:
                 st.error(f"An error occurred: {e}")
 
-# -------------------------------
-# メインカード終了
-# -------------------------------
 st.markdown("</div>", unsafe_allow_html=True)
